@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+app = FastAPI(
+     title="Watchtower",
+    description="Uptime monitor for my own estate"
+)
 
 @app.get("/")
-async def home():
-    return {"message": "welcome"}
+def read_root():
+    return {"service": "watchtower", "status": "ok"}
 
 @app.get("/healthz")
 async def health_check():

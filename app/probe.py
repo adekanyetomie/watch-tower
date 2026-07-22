@@ -1,0 +1,72 @@
+import asyncio
+import time 
+from datetime import datetime, timezone
+import httpx
+from pydantic import BaseModel
+
+
+class ProbeResult(BaseModel):
+    url: str
+    ok: bool
+    status_code: int | None = None
+    latency: float | None = None
+    error: str | None = None
+    checked_at: datetime
+
+
+async def probe(client: httpx.AsyncClient, url: str) -> ProbeResult: 
+    start = time.perf_counter()
+    try:
+        response = await client.get(url)
+    except httpx.RequestError as exc: 
+        elapsed_time = (time.perf_counter() - start) * 1000
+        return ProbeResult(
+            url=url,
+            ok=False,
+            latency=round(elapsed_time, 1),
+            error=type(exc).__name__,
+            checked_at= datetime.now(timezone.utc)          
+        )
+
+    elapsed_time = (time.perf_counter() - start) * 1000
+    return ProbeResult(
+            url=url,
+            ok=response.is_success,
+            status_code=response.status_code,
+            latency=round(elapsed_time, 1),
+            checked_at= datetime.now(timezone.utc)          
+        )
+
+async def probe_all(client: httpx.AsyncClient, urls: list[str]) -> list[ProbeResult]:
+    return await asyncio.gather(*(probe(client, u) for u in urls))
+
+
+# Demo runner
+
+async def _demo():
+    from store import ResultStore
+    
+    urls = [
+        "https://tomi-og.com",
+        "https://tomi-dashboard.netlify.app",
+        "https://substack.com/@tomiiiog"
+        "https://httpstat.us/500",              # answers, but unhappily
+        "https://nope.tomi-og.com",             # unreachable
+    ]
+
+    store = ResultStore()
+
+    async with httpx.AsyncClient(follow_redirects=True, timeout=5.0) as client:
+        results = await probe_all(client, urls)
+    
+    for r in results:
+        print(store.update(r))
+
+  # read back out of the store, not the probe results directly
+    for r in store.all():
+        print(r.model_dump_json())
+
+
+if __name__ == "__main__":
+    asyncio.run(_demo())
+
