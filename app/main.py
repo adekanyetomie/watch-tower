@@ -2,11 +2,12 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response, status as http_status
 import httpx
 
 from .config import get_interval_seconds, get_targets, get_timeout_seconds
 from .probe import probe_loop
+from .schemas import HealthResponse, StatusResponse
 from .store import ResultStore
 
 logging.basicConfig(level=logging.INFO)
@@ -50,19 +51,29 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-@app.get("/status")
-def status(request: Request):
+@app.get("/status", response_model=StatusResponse)
+def get_status(request: Request):
     store = request.app.state.store
-    return {
-        "targets": len(request.app.state.targets),
-        "down": store.down_count(),
-        "results": store.all()
-    }
+    return StatusResponse(
+        targets= len(request.app.state.targets),
+        down=store.down_count(),
+        results= store.all()
+    )
 
 @app.get("/")
 def read_root():
     return {"service": "watchtower", "status": "ok"}
 
-@app.get("/healthz")
-async def health_check():
-    return {"message": "ok"}
+@app.get("/health", response_model= HealthResponse)
+async def health_check(request: Request, response: Response):
+    task = request.app.state.probe_task
+    alive = not task.done()
+
+    if not alive:
+        response.status_code = http_status.HTTP_503_SERVICE_UNAVAILABLE
+    
+    return HealthResponse(
+        status="ok" if alive else "probe_loop_dead",
+        targets=len(request.app.state.targets),
+        down=down
+    )

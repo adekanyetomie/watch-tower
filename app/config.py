@@ -1,6 +1,6 @@
 import os
 
-DEFAULT_TARGETS = "https://tomi-og.com, https://tomi-dashboard.netlify.app, https://substack.com/@tomiiiog, https://httpstat.us/500, https://nope.tomi-og.com"
+DEFAULT_TARGETS = "https://tomi-og.com, https://tomi-dashboard.netlify.app, https://substack.com/@tomiiiog, https://tomi-og.com/this-page-does-not-exist, https://httpstat.us/500, https://nope.tomi-og.com"
 
 def get_targets() -> list[str]:
     raw = os.getenv("WATCHTOWER_TARGETS", DEFAULT_TARGETS)

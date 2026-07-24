@@ -9,7 +9,7 @@ class ProbeResult(BaseModel):
     url: str
     ok: bool
     status_code: int | None = None
-    latency: float | None = None
+    latency_ms: float | None = None
     error: str | None = None
     checked_at: datetime
 
@@ -23,7 +23,7 @@ async def probe(client: httpx.AsyncClient, url: str) -> ProbeResult:
         return ProbeResult(
             url=url,
             ok=False,
-            latency=round(elapsed_time, 1),
+            latency_ms=round(elapsed_time, 1),
             error=type(exc).__name__,
             checked_at= datetime.now(timezone.utc)          
         )
@@ -33,7 +33,7 @@ async def probe(client: httpx.AsyncClient, url: str) -> ProbeResult:
             url=url,
             ok=response.is_success,
             status_code=response.status_code,
-            latency=round(elapsed_time, 1),
+            latency_ms=round(elapsed_time, 1),
             checked_at= datetime.now(timezone.utc)          
         )
 
