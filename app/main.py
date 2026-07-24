@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response, status as http_status
 import httpx
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from .config import get_interval_seconds, get_targets, get_timeout_seconds
 from .probe import probe_loop
@@ -60,9 +61,12 @@ def get_status(request: Request):
         results= store.all()
     )
 
-@app.get("/")
-def read_root():
-    return {"service": "watchtower", "status": "ok"}
+@app.get("/metrics")
+def metrics():
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST
+    )
 
 @app.get("/health", response_model= HealthResponse)
 async def health_check(request: Request, response: Response):

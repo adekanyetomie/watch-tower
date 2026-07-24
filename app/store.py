@@ -1,4 +1,4 @@
-from .probe import ProbeResult
+from .models import ProbeResult
 
 class ResultStore:
     def __init__(self) -> None:

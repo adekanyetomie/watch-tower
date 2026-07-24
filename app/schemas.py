@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from .probe import ProbeResult
+from .models import ProbeResult
 
 
 class StatusResponse(BaseModel):

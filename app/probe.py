@@ -2,16 +2,9 @@ import asyncio
 import time 
 from datetime import datetime, timezone
 import httpx
-from pydantic import BaseModel
 
-
-class ProbeResult(BaseModel):
-    url: str
-    ok: bool
-    status_code: int | None = None
-    latency_ms: float | None = None
-    error: str | None = None
-    checked_at: datetime
+from .metrics import record
+from .models import ProbeResult
 
 
 async def probe(client: httpx.AsyncClient, url: str) -> ProbeResult: 
@@ -56,6 +49,7 @@ async def probe_loop(
             results = await probe_all(client, urls)
             for result in results:
                 store.update(result)
+                record(result)
             logger.info("probed %d targets, %d down", len(results), store.down_count())
 
         except asyncio.CancelledError:
