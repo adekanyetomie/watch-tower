@@ -41,6 +41,33 @@ async def probe_all(client: httpx.AsyncClient, urls: list[str]) -> list[ProbeRes
     return await asyncio.gather(*(probe(client, u) for u in urls))
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+async def probe_loop(
+    client: httpx.AsyncClient,
+    store,
+    urls: list[str],
+    interval_seconds: int
+) -> None:
+    while True:
+        try:
+            results = await probe_all(client, urls)
+            for result in results:
+                store.update(result)
+            logger.info("probed %d targets, %d down", len(results), store.down_count())
+
+        except asyncio.CancelledError:
+            logger.info("probe loop cancelled")
+            raise
+
+        except Exception:
+            logger.exception("probe cycle failed")
+
+        await asyncio.sleep(interval_seconds)
+
+
 # Demo runner
 
 async def _demo():
